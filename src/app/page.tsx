@@ -13,7 +13,18 @@ type LaneItem = {
 
 async function getLanes() {
   try {
-    const res = await fetch("http://localhost:3000/api/statements", {
+    // During build time, return empty data
+    if (process.env.NODE_ENV === 'production') {
+      return {
+        mostPopular: [],
+        fiftyFifty: [],
+        newHot: []
+      };
+    }
+
+    const protocol = process.env.NODE_ENV === 'development' ? 'http' : 'https';
+    const host = process.env.VERCEL_URL || 'localhost:3000';
+    const res = await fetch(`${protocol}://${host}/api/statements`, {
       cache: 'no-store'
     });
     
@@ -26,7 +37,12 @@ async function getLanes() {
     return data as { mostPopular: LaneItem[]; fiftyFifty: LaneItem[]; newHot: LaneItem[] };
   } catch (error) {
     console.error("Error fetching statements:", error);
-    throw new Error("Failed to load statements");
+    // Return empty data instead of throwing
+    return {
+      mostPopular: [],
+      fiftyFifty: [],
+      newHot: []
+    };
   }
 }
 

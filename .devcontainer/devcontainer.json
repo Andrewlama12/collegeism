@@ -6,6 +6,10 @@
     "ghcr.io/devcontainers/features/github-cli:1": {}
   },
   "postCreateCommand": "bash -lc 'if [ -f package-lock.json ]; then npm ci; elif [ -f package.json ]; then npm install; fi'",
+  "postStartCommand": "npm run build",
+  "postAttachCommand": {
+    "server": "npm run dev"
+  },
   "forwardPorts": [3000],
   "remoteUser": "node",
   "customizations": {
@@ -14,7 +18,22 @@
         "dbaeumer.vscode-eslint",
         "esbenp.prettier-vscode",
         "bradlc.vscode-tailwindcss"
-      ]
+      ],
+      "settings": {
+        "editor.formatOnSave": true,
+        "editor.defaultFormatter": "esbenp.prettier-vscode",
+        "editor.codeActionsOnSave": {
+          "source.fixAll.eslint": true
+        }
+      }
+    }
+  },
+  "waitFor": "postCreateCommand",
+  "updateContentCommand": "npm install",
+  "portsAttributes": {
+    "3000": {
+      "label": "Next.js",
+      "onAutoForward": "notify"
     }
   }
 }

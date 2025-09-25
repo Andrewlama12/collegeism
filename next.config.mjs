@@ -4,7 +4,7 @@ const nextConfig = {
     return [];
   },
   env: {
-    PORT: 3000
+    PORT: "3000"
   }
 };
 
