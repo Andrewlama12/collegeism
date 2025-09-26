@@ -1,8 +1,7 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
-  async rewrites() {
-    return [];
-  },
+  output: 'standalone',
+  poweredByHeader: false,
   env: {
     PORT: "3000"
   }

@@ -13,9 +13,8 @@ type LaneItem = {
 
 async function getLanes() {
   try {
-    const res = await fetch('/api/statements', {
-      cache: 'no-store',
-      next: { revalidate: 0 }
+    const res = await fetch(`${process.env.NEXT_PUBLIC_URL || ''}/api/statements`, {
+      cache: 'no-store'
     });
     
     if (!res.ok) {
