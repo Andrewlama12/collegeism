@@ -9,13 +9,27 @@ jobs:
     steps:
       - uses: actions/checkout@v3
       
+      - name: Setup Node.js
+        uses: actions/setup-node@v3
+        with:
+          node-version: '20'
+          
       - name: Test Environment Variables
         run: |
           if [ -n "${{ secrets.OPENAI_API_KEY }}" ]; then
             echo "✅ OPENAI_API_KEY is set"
+            # Test API connection
+            curl -s -o /dev/null -w "%{http_code}" \
+              -H "Authorization: Bearer ${{ secrets.OPENAI_API_KEY }}" \
+              -H "Content-Type: application/json" \
+              https://api.openai.com/v1/models
+            if [ $? -eq 0 ]; then
+              echo "✅ OpenAI API connection successful"
+            else
+              echo "❌ OpenAI API connection failed"
+            fi
           else
             echo "❌ OPENAI_API_KEY is not set"
           fi
         env:
-          # Using a dummy value to test if secret exists
-          TEST_KEY: ${{ secrets.OPENAI_API_KEY }}
+          OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
