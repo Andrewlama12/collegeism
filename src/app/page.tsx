@@ -13,19 +13,9 @@ type LaneItem = {
 
 async function getLanes() {
   try {
-    // During build time, return empty data
-    if (process.env.NODE_ENV === 'production') {
-      return {
-        mostPopular: [],
-        fiftyFifty: [],
-        newHot: []
-      };
-    }
-
-    const protocol = process.env.NODE_ENV === 'development' ? 'http' : 'https';
-    const host = process.env.VERCEL_URL || 'localhost:3000';
-    const res = await fetch(`${protocol}://${host}/api/statements`, {
-      cache: 'no-store'
+    const res = await fetch('/api/statements', {
+      cache: 'no-store',
+      next: { revalidate: 0 }
     });
     
     if (!res.ok) {
@@ -37,7 +27,6 @@ async function getLanes() {
     return data as { mostPopular: LaneItem[]; fiftyFifty: LaneItem[]; newHot: LaneItem[] };
   } catch (error) {
     console.error("Error fetching statements:", error);
-    // Return empty data instead of throwing
     return {
       mostPopular: [],
       fiftyFifty: [],
@@ -51,19 +40,30 @@ function Lane({ title, items }: { title: string; items: LaneItem[] }) {
     <section className="mb-10">
       <h2 className="text-xl font-semibold mb-3">{title}</h2>
       <div className="flex gap-4 overflow-x-auto pb-2">
-        {items.map((s) => (
-          <Link
-            key={s.id}
-            href={`/statement/${s.id}`}
-            className="min-w-[340px] max-w-[340px] rounded-2xl border p-4 hover:shadow-sm"
-          >
-            <p className="leading-6">{s.text}</p>
-            <div className="mt-3 text-xs opacity-70">
-              <span className="mr-3">Votes: {s.totalVotes}</span>
-              <span>Balance: {s.balanceScore?.toFixed?.(2) ?? "0.00"}</span>
+        {items.length === 0 ? (
+          <div className="min-w-[340px] max-w-[340px] rounded-2xl border p-4 animate-pulse bg-gray-50">
+            <div className="h-4 bg-gray-200 rounded w-3/4 mb-2"></div>
+            <div className="h-4 bg-gray-200 rounded w-1/2"></div>
+            <div className="mt-3 flex gap-2">
+              <div className="h-3 bg-gray-200 rounded w-16"></div>
+              <div className="h-3 bg-gray-200 rounded w-20"></div>
             </div>
-          </Link>
-        ))}
+          </div>
+        ) : (
+          items.map((s) => (
+            <Link
+              key={s.id}
+              href={`/statement/${s.id}`}
+              className="min-w-[340px] max-w-[340px] rounded-2xl border p-4 hover:shadow-sm transition-shadow"
+            >
+              <p className="leading-6">{s.text}</p>
+              <div className="mt-3 text-xs opacity-70">
+                <span className="mr-3">Votes: {s.totalVotes}</span>
+                <span>Balance: {s.balanceScore?.toFixed?.(2) ?? "0.00"}</span>
+              </div>
+            </Link>
+          ))
+        )}
       </div>
     </section>
   );
