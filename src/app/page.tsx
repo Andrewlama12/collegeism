@@ -12,26 +12,43 @@ type LaneItem = {
 };
 
 async function getLanes() {
-  try {
-    const res = await fetch(`${process.env.NEXT_PUBLIC_URL || ''}/api/statements`, {
-      cache: 'no-store'
-    });
+  // Import data directly since we're on the server
+  const { db, computeBalance } = await import('@/lib/data');
+  
+  // Initialize data if empty
+  if (db.statements.length === 0) {
+    const now = new Date();
+    const s = (hrs: number) => new Date(now.getTime() - hrs * 3600_000).toISOString();
     
-    if (!res.ok) {
-      console.error("Failed to load statements:", await res.text());
-      throw new Error("Failed to load statements");
-    }
-
-    const data = await res.json();
-    return data as { mostPopular: LaneItem[]; fiftyFifty: LaneItem[]; newHot: LaneItem[] };
-  } catch (error) {
-    console.error("Error fetching statements:", error);
-    return {
-      mostPopular: [],
-      fiftyFifty: [],
-      newHot: []
-    };
+    db.statements.push(
+      {
+        id: "1",
+        text: "Universities should publish all course materials online for free.",
+        createdAt: s(4),
+        totalVotes: 10,
+        agreeWeight: 7,
+        disagreeWeight: 3,
+        quiz: []
+      },
+      {
+        id: "2",
+        text: "Campus parking should be replaced with green space and microtransit.",
+        createdAt: s(2),
+        totalVotes: 15,
+        agreeWeight: 8,
+        disagreeWeight: 7,
+        quiz: []
+      }
+    );
   }
+
+  const items = db.statements.map(s => ({ ...s, balanceScore: computeBalance(s) }));
+  
+  return {
+    mostPopular: [...items].sort((a, b) => b.totalVotes - a.totalVotes).slice(0, 20),
+    fiftyFifty: [...items].sort((a, b) => Math.abs(0.5 - (a.agreeWeight / (a.agreeWeight + a.disagreeWeight))) - Math.abs(0.5 - (b.agreeWeight / (b.agreeWeight + b.disagreeWeight)))).slice(0, 20),
+    newHot: [...items].sort((a, b) => +new Date(b.createdAt) - +new Date(a.createdAt)).slice(0, 20)
+  };
 }
 
 function Lane({ title, items }: { title: string; items: LaneItem[] }) {
