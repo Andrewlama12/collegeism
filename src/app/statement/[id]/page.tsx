@@ -15,8 +15,7 @@ type Statement = {
   summary?: { forReasons: string[]; againstReasons: string[] };
 };
 
-export default function StatementPage({ params }: { params: Promise<{ id: string }> }) {
-  const resolvedParams = use(params);
+export default function StatementPage({ params }: { params: { id: string } }) {
   const [data, setData] = useState<Statement | null>(null);
   const [loading, setLoading] = useState(true);
   const [stance, setStance] = useState<"agree" | "disagree" | null>(null);
@@ -31,7 +30,7 @@ export default function StatementPage({ params }: { params: Promise<{ id: string
     async function fetchData() {
       try {
         setLoading(true);
-        const res = await fetch(`/api/statements/${resolvedParams.id}`);
+        const res = await fetch(`/api/statements/${params.id}`);
         if (!mounted) return;
 
         if (!res.ok) {
@@ -57,7 +56,7 @@ export default function StatementPage({ params }: { params: Promise<{ id: string
 
     fetchData();
     return () => { mounted = false; };
-  }, [resolvedParams.id]);
+  }, [params.id]);
 
   const canSubmit = useMemo(() => {
     if (!stance || !data) return false;
@@ -79,7 +78,7 @@ export default function StatementPage({ params }: { params: Promise<{ id: string
     const json = await res.json();
     setResult(json);
 
-    const ref = await fetch(`/api/statements/${resolvedParams.id}`).catch(() => null);
+    const ref = await fetch(`/api/statements/${params.id}`).catch(() => null);
     if (ref && ref.ok) setData(await ref.json());
   }
 
