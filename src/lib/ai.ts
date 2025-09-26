@@ -1,7 +1,7 @@
 export async function generateQuizForStatement(text: string, apiKey = process.env.OPENAI_API_KEY) {
   if (!apiKey) throw new Error("Missing OPENAI_API_KEY");
   const body = {
-    model: "gpt-4o-mini",
+    model: "gpt-4-turbo-preview",
     temperature: 0.3,
     response_format: { type: "json_object" },
     messages: [
@@ -28,7 +28,7 @@ export async function generateQuizForStatement(text: string, apiKey = process.en
 export async function summarizeReasons(text: string, apiKey = process.env.OPENAI_API_KEY) {
   if (!apiKey) throw new Error("Missing OPENAI_API_KEY");
   const body = {
-    model: "gpt-4o-mini",
+    model: "gpt-4-turbo-preview",
     temperature: 0.2,
     response_format: { type: "json_object" },
     messages: [

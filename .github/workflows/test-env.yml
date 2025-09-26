@@ -2,6 +2,10 @@ name: Test Environment
 
 on:
   workflow_dispatch:  # Manual trigger
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
 
 jobs:
   test-environment:
@@ -13,23 +17,69 @@ jobs:
         uses: actions/setup-node@v3
         with:
           node-version: '20'
+          cache: 'npm'
+          
+      - name: Install dependencies
+        run: npm ci
           
       - name: Test Environment Variables
         run: |
-          if [ -n "${{ secrets.OPENAI_API_KEY }}" ]; then
-            echo "✅ OPENAI_API_KEY is set"
-            # Test API connection
-            curl -s -o /dev/null -w "%{http_code}" \
+          # Function to check secret
+          check_secret() {
+            local secret_name=$1
+            local secret_value=$2
+            if [ -n "$secret_value" ]; then
+              echo "✅ $secret_name is set"
+              return 0
+            else
+              echo "❌ $secret_name is not set"
+              return 1
+            fi
+          }
+
+          # Check all required secrets
+          errors=0
+          
+          # Check OpenAI API
+          if check_secret "OPENAI_API_KEY" "${{ secrets.OPENAI_API_KEY }}"; then
+            echo "Testing OpenAI API connection..."
+            status_code=$(curl -s -o /dev/null -w "%{http_code}" \
               -H "Authorization: Bearer ${{ secrets.OPENAI_API_KEY }}" \
               -H "Content-Type: application/json" \
-              https://api.openai.com/v1/models
-            if [ $? -eq 0 ]; then
+              https://api.openai.com/v1/models)
+            if [ "$status_code" -eq 200 ]; then
               echo "✅ OpenAI API connection successful"
             else
-              echo "❌ OpenAI API connection failed"
+              echo "❌ OpenAI API connection failed (status: $status_code)"
+              ((errors++))
             fi
           else
-            echo "❌ OPENAI_API_KEY is not set"
+            ((errors++))
+          fi
+
+          # Check other environment variables
+          check_secret "DATABASE_URL" "${{ secrets.DATABASE_URL }}" || ((errors++))
+          check_secret "NEXTAUTH_SECRET" "${{ secrets.NEXTAUTH_SECRET }}" || ((errors++))
+          check_secret "NEXTAUTH_URL" "${{ secrets.NEXTAUTH_URL }}" || ((errors++))
+
+          # Exit with error if any checks failed
+          if [ $errors -gt 0 ]; then
+            echo "❌ Environment check failed with $errors error(s)"
+            exit 1
+          else
+            echo "✅ All environment checks passed"
           fi
         env:
           OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
+          DATABASE_URL: ${{ secrets.DATABASE_URL }}
+          NEXTAUTH_SECRET: ${{ secrets.NEXTAUTH_SECRET }}
+          NEXTAUTH_URL: ${{ secrets.NEXTAUTH_URL }}
+
+      - name: Run linting
+        run: npm run lint
+
+      - name: Run type checking
+        run: npm run typecheck
+
+      - name: Run tests
+        run: npm test
