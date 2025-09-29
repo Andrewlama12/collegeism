@@ -10,7 +10,7 @@ export async function POST(_: Request, { params }: { params: { id: string } }) {
   const summary = await summarizeReasons(st.text);
 
   if (Array.isArray(quiz) && quiz.length >= 2) {
-    st.quiz = quiz.map((q: any, i: number) => ({
+    st.quiz = quiz.map((q: { question: string; choices: string[]; answerIndex: number }, i: number) => ({
       id: `q${i + 1}`,
       question: q.question,
       choices: q.choices,

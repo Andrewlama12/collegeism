@@ -28,21 +28,27 @@ export async function POST(request: Request) {
         ]);
 
         // Create statement in store
-        const newStatement = store.createStatement(topic.text);
+        const newStatement = await store.createStatement(topic.text);
 
         // Create quizzes
-        quiz.map((q: any) => store.createQuiz({
+        await Promise.all(quiz.map((q: { question: string; choices: string[]; answer_index: number }) => store.createQuiz({
           question: q.question,
           choices: q.choices,
-          answer_index: q.answerIndex,
+          answer_index: q.answer_index,
           statement_id: newStatement.id
+        })).then((results: { data: any; error: any }[]) => {
+          for (const result of results) {
+            if (result.error) throw result.error;
+          }
         }));
 
         // Create summary
-        store.createSummary({
-          for_reasons: summary?.forReasons ?? [],
-          against_reasons: summary?.againstReasons ?? [],
+        await store.createSummary({
+          for_reasons: summary?.for_reasons ?? [],
+          against_reasons: summary?.against_reasons ?? [],
           statement_id: newStatement.id
+        }).then(result => {
+          if (result.error) throw result.error;
         });
 
         results.push({

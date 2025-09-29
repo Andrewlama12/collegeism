@@ -1,9 +1,10 @@
-import { supabase } from './supabase';
+import { supabase as db } from './supabase';
+export { db };
 import { StatementWithQuiz } from './types';
 
 export async function getStatements(): Promise<StatementWithQuiz[]> {
   try {
-    const { data: statements, error } = await supabase
+    const { data: statements, error } = await db
       .from('statements')
       .select(`
         *,
@@ -37,7 +38,7 @@ export async function getStatements(): Promise<StatementWithQuiz[]> {
       totalVotes: statement.total_votes,
       agreeWeight: statement.agree_weight,
       disagreeWeight: statement.disagree_weight,
-      quiz: statement.quiz?.map(q => ({
+      quiz: statement.quiz?.map((q: { id: string; question: string; choices: string[]; answer_index: number }) => ({
         id: q.id,
         question: q.question,
         choices: q.choices,
@@ -56,7 +57,7 @@ export async function getStatements(): Promise<StatementWithQuiz[]> {
 
 export async function getStatementById(id: string): Promise<StatementWithQuiz | null> {
   try {
-    const { data: statement, error } = await supabase
+    const { data: statement, error } = await db
       .from('statements')
       .select(`
         *,
@@ -90,7 +91,7 @@ export async function getStatementById(id: string): Promise<StatementWithQuiz | 
       totalVotes: statement.total_votes,
       agreeWeight: statement.agree_weight,
       disagreeWeight: statement.disagree_weight,
-      quiz: statement.quiz?.map(q => ({
+      quiz: statement.quiz?.map((q: { id: string; question: string; choices: string[]; answer_index: number }) => ({
         id: q.id,
         question: q.question,
         choices: q.choices,
