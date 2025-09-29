@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
-import { getTrendingTopics, isTopicRecent } from "@/lib/topics";
-import { generateDebateStatement, generateQuizForStatement, summarizeReasons } from "@/lib/ai";
+import { DEBATE_TOPICS, isTopicRecent } from "@/lib/topics";
+import { generateQuizForStatement, summarizeReasons } from "@/lib/ai";
 import { store } from "@/lib/store";
 
 export async function POST(request: Request) {
@@ -8,33 +8,27 @@ export async function POST(request: Request) {
     // Optional count parameter in request body
     const { count = 3 } = await request.json();
     
-    // Get trending topics
-    const topics = await getTrendingTopics();
-    
     const results = [];
     const errors = [];
 
     // Process topics until we have enough statements or run out of topics
-    for (const topic of topics) {
+    for (const topic of DEBATE_TOPICS) {
       if (results.length >= count) break;
       
       try {
         // Skip if topic was recently used
-        if (await isTopicRecent(topic.title)) {
+        if (await isTopicRecent(topic.text)) {
           continue;
         }
-
-        // Generate debate statement
-        const { statement, relevance, collegeContext } = await generateDebateStatement(topic);
         
         // Generate quiz and summary
         const [quiz, summary] = await Promise.all([
-          generateQuizForStatement(statement),
-          summarizeReasons(statement)
+          generateQuizForStatement(topic.text),
+          summarizeReasons(topic.text)
         ]);
 
         // Create statement in store
-        const newStatement = store.createStatement(statement);
+        const newStatement = store.createStatement(topic.text);
 
         // Create quizzes
         const quizzes = quiz.map((q: any) => store.createQuiz({
@@ -53,14 +47,13 @@ export async function POST(request: Request) {
 
         results.push({
           statement: newStatement,
-          topic: topic.title,
-          relevance,
-          collegeContext
+          topic: topic.text,
+          category: topic.category
         });
       } catch (error) {
-        console.error(`Error processing topic "${topic.title}":`, error);
+        console.error(`Error processing topic "${topic.text}":`, error);
         errors.push({
-          topic: topic.title,
+          topic: topic.text,
           error: error instanceof Error ? error.message : 'Unknown error'
         });
       }
