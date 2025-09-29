@@ -1,9 +1,9 @@
 import { NextResponse } from "next/server";
-import { db } from "@/lib/data";
+import { getStatementById } from "@/lib/data";
 import { generateQuizForStatement, summarizeReasons } from "@/lib/ai";
 
 export async function POST(_: Request, { params }: { params: { id: string } }) {
-  const st = db.statements.find(s => s.id === params.id);
+  const st = await getStatementById(params.id);
   if (!st) return NextResponse.json({ error: "Not found" }, { status: 404 });
 
   const quiz = await generateQuizForStatement(st.text);

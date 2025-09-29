@@ -50,7 +50,7 @@ export const DEBATE_TOPICS = [
 // Check if a topic has been recently used
 export async function isTopicRecent(topic: string, daysThreshold = 7): Promise<boolean> {
   const statements = store.getStatements();
-  const recentStatement = statements.find(s => {
+  const recentStatement = (await statements).find((s: { createdAt: string; text: string }) => {
     const isRecent = new Date(s.createdAt).getTime() > Date.now() - daysThreshold * 24 * 60 * 60 * 1000;
     const containsTopic = s.text.toLowerCase().includes(topic.toLowerCase());
     return isRecent && containsTopic;

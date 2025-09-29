@@ -77,7 +77,7 @@ export async function POST(request: Request) {
         totalVotes: completeStatement.total_votes,
         agreeWeight: completeStatement.agree_weight,
         disagreeWeight: completeStatement.disagree_weight,
-        quiz: completeStatement.quiz?.map(q => ({
+        quiz: completeStatement.quiz?.map((q: { id: string; question: string; choices: string[]; answer_index: number }) => ({
           id: q.id,
           question: q.question,
           choices: q.choices,

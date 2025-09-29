@@ -34,15 +34,15 @@ export async function POST(request: Request) {
         quiz.map((q: any) => store.createQuiz({
           question: q.question,
           choices: q.choices,
-          answerIndex: q.answerIndex,
-          statementId: newStatement.id
+          answer_index: q.answerIndex,
+          statement_id: newStatement.id
         }));
 
         // Create summary
         store.createSummary({
-          forReasons: summary?.forReasons ?? [],
-          againstReasons: summary?.againstReasons ?? [],
-          statementId: newStatement.id
+          for_reasons: summary?.forReasons ?? [],
+          against_reasons: summary?.againstReasons ?? [],
+          statement_id: newStatement.id
         });
 
         results.push({
