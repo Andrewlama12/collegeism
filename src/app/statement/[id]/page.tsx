@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState, use } from "react";
+import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 
 type QuizQ = { id: string; question: string; choices: string[]; answerIndex: number };

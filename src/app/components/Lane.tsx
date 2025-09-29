@@ -45,11 +45,7 @@ export function Lane({ statement }: { statement: Statement }) {
     return { agreePercent: agree, disagreePercent: disagree };
   }, [statement.balanceScore]);
 
-  const category = useMemo(() => getStatementCategory(statement), [
-    statement.totalVotes,
-    statement.balanceScore,
-    statement.createdAt
-  ]);
+  const category = useMemo(() => getStatementCategory(statement), [statement]);
   
   return (
     <Link

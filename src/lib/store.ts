@@ -33,7 +33,7 @@ class Store {
   // Initialize store with sample data if empty
   async init() {
     console.log("Checking if database needs initialization...");
-    const { data, count, error } = await supabase
+    const { count, error } = await supabase
       .from('statements')
       .select('*', { count: 'exact', head: true });
 

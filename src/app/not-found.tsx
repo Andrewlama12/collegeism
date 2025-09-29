@@ -12,7 +12,7 @@ export default function NotFound() {
       <div className="text-center py-10">
         <h2 className="text-2xl font-bold mb-4">Page Not Found</h2>
         <p className="text-gray-600 mb-6">
-          The page you're looking for doesn't exist or has been moved.
+          The page you are looking for does not exist or has been moved.
         </p>
         <Link 
           href="/"

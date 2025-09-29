@@ -85,23 +85,19 @@ function StatementCard({ statement }: { statement: StatementItem }) {
     const avgWeight = totalWeight / statement.totalVotes;
     const comprehensionRate = Math.round(avgWeight * 100);
     
-    let color = 'blue';
     let bgColor = 'bg-blue-50';
     let borderColor = 'border-blue-200';
     let textColor = 'text-blue-700';
     
     if (comprehensionRate >= 70) {
-      color = 'green';
       bgColor = 'bg-green-50';
       borderColor = 'border-green-200';
       textColor = 'text-green-700';
     } else if (comprehensionRate < 50) {
-      color = 'red';
       bgColor = 'bg-red-50';
       borderColor = 'border-red-200';
       textColor = 'text-red-700';
     } else if (comprehensionRate < 70) {
-      color = 'yellow';
       bgColor = 'bg-yellow-50';
       borderColor = 'border-yellow-200';
       textColor = 'text-yellow-700';

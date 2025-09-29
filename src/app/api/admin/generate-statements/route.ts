@@ -31,7 +31,7 @@ export async function POST(request: Request) {
         const newStatement = store.createStatement(topic.text);
 
         // Create quizzes
-        const quizzes = quiz.map((q: any) => store.createQuiz({
+        quiz.map((q: any) => store.createQuiz({
           question: q.question,
           choices: q.choices,
           answerIndex: q.answerIndex,
@@ -39,7 +39,7 @@ export async function POST(request: Request) {
         }));
 
         // Create summary
-        const summaryRecord = store.createSummary({
+        store.createSummary({
           forReasons: summary?.forReasons ?? [],
           againstReasons: summary?.againstReasons ?? [],
           statementId: newStatement.id
