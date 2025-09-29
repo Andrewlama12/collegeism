@@ -1,36 +1,82 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# Collegeism — Understanding > Noise
+
+A platform for weighted voting on opinion statements, where vote weight is earned by passing comprehension checks. Users can see AI-generated summaries of both sides of an argument.
+
+## Features
+
+- **Weighted Voting System**: Votes are weighted based on comprehension quiz performance
+- **AI-Generated Quizzes**: Each statement has 2-3 multiple-choice questions to verify understanding
+- **Dual-Side Summaries**: AI-generated reasons for and against each statement
+- **Three Curated Feeds**: Most Popular, 50/50 Debates, and New/Hot
+
+## Tech Stack
+
+- **Framework**: Next.js 14 with App Router
+- **Database**: Supabase (PostgreSQL)
+- **AI**: OpenAI GPT-4 for quiz and summary generation
+- **Styling**: Tailwind CSS
 
 ## Getting Started
 
-First, run the development server:
+### Prerequisites
 
+- Node.js 18+ 
+- A Supabase account
+- An OpenAI API key (for creating new statements)
+
+### Setup
+
+1. **Clone and install dependencies**:
 ```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
+npm install
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+2. **Configure environment variables**:
+Create a `.env.local` file with:
+```env
+NEXT_PUBLIC_SUPABASE_URL=https://your-project-id.supabase.co
+NEXT_PUBLIC_SUPABASE_ANON_KEY=your-anon-key
+OPENAI_API_KEY=your-openai-key
+```
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+3. **Set up Supabase database**:
+   - Create a new Supabase project
+   - Run the migrations in the SQL Editor:
+     - `supabase/migrations/20250929000000_initial_schema.sql`
+     - `supabase/migrations/20250929_fix_relationships.sql`
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+4. **Run the development server**:
+```bash
+npm run dev
+```
 
-## Learn More
+Open [http://localhost:3000](http://localhost:3000) to view the app.
 
-To learn more about Next.js, take a look at the following resources:
+## Database Schema
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+### Tables
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+- **statements**: Opinion statements that users vote on
+- **quiz**: Comprehension questions for each statement
+- **summary**: AI-generated reasons for and against each statement
 
-## Deploy on Vercel
+All tables use UUIDs as primary keys and have proper foreign key relationships with cascading deletes.
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+## API Routes
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+- `GET /api/statements` - Fetch all statements with metadata
+- `GET /api/statements/[id]` - Fetch a single statement with quiz and summary
+- `POST /api/statements/create` - Create a new statement (requires OpenAI API key)
+- `POST /api/vote` - Submit a vote with quiz answers
+
+## Troubleshooting
+
+See [SETUP.md](./SETUP.md) for detailed setup instructions and troubleshooting tips.
+
+## Recent Fixes (Sept 29, 2025)
+
+- ✅ Migrated from SQLite to Supabase
+- ✅ Fixed table naming (quiz/summary vs quizzes/summaries)
+- ✅ Updated all API routes to use Supabase
+- ✅ Fixed statement detail page showing "not found"
+- ✅ Fixed voting functionality with proper database updates

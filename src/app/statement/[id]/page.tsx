@@ -100,36 +100,53 @@ export default function StatementPage({ params }: { params: { id: string } }) {
     <main className="mx-auto max-w-2xl p-6">
       <Link 
         href="/"
-        className="inline-block mb-6 text-sm hover:underline"
+        className="inline-flex items-center gap-2 mb-6 text-sm text-blue-600 hover:text-blue-700 font-medium"
       >
         ← Back to Home
       </Link>
-      <h1 className="text-2xl font-semibold mb-3">Statement</h1>
-      <p className="leading-7">{data.text}</p>
+      <h1 className="text-2xl font-semibold mb-4 text-gray-800">Statement</h1>
+      <p className="leading-8 text-lg text-gray-900 font-medium">{data.text.replace(/^["']|["']$/g, '')}</p>
 
-      <div className="mt-6 flex gap-3">
+      <div className="mt-8 flex gap-4">
         <button
-          className={`rounded-2xl border px-4 py-2 ${stance==="agree" ? "bg-black text-white" : ""}`}
+          className={`rounded-xl border-2 px-6 py-3 font-semibold transition-all flex items-center gap-2 ${
+            stance === "agree" 
+              ? "bg-green-500 text-white border-green-600 shadow-lg scale-105" 
+              : "bg-white text-gray-700 border-gray-300 hover:border-green-400 hover:bg-green-50"
+          }`}
           onClick={() => setStance("agree")}
         >
+          <span className="text-xl">👍</span>
           Agree
         </button>
         <button
-          className={`rounded-2xl border px-4 py-2 ${stance==="disagree" ? "bg-black text-white" : ""}`}
+          className={`rounded-xl border-2 px-6 py-3 font-semibold transition-all flex items-center gap-2 ${
+            stance === "disagree" 
+              ? "bg-red-500 text-white border-red-600 shadow-lg scale-105" 
+              : "bg-white text-gray-700 border-gray-300 hover:border-red-400 hover:bg-red-50"
+          }`}
           onClick={() => setStance("disagree")}
         >
+          <span className="text-xl">👎</span>
           Disagree
         </button>
       </div>
 
-      <div className="mt-8">
-        <h2 className="text-lg font-medium mb-2">Comprehension Check</h2>
+      <div className="mt-10">
+        <h2 className="text-xl font-semibold mb-4 text-gray-800">📝 Comprehension Check</h2>
         {data.quiz?.map((q, qi) => (
-          <div key={q.id} className="mb-5 rounded-2xl border p-4">
-            <p className="font-medium mb-2">{qi + 1}. {q.question}</p>
-            <div className="grid gap-2">
+          <div key={q.id} className="mb-6 rounded-xl border-2 border-gray-200 p-5 bg-gradient-to-br from-white to-gray-50">
+            <p className="font-semibold mb-3 text-gray-800">{qi + 1}. {q.question}</p>
+            <div className="grid gap-2.5">
               {q.choices.map((c, ci) => (
-                <label key={ci} className="flex items-center gap-2 cursor-pointer">
+                <label 
+                  key={ci} 
+                  className={`flex items-center gap-3 cursor-pointer p-3 rounded-lg border-2 transition-all ${
+                    answers[qi] === ci 
+                      ? 'bg-blue-50 border-blue-400 shadow-sm' 
+                      : 'border-gray-200 hover:border-blue-300 hover:bg-blue-50'
+                  }`}
+                >
                   <input
                     type="radio"
                     name={`q-${qi}`}
@@ -139,8 +156,9 @@ export default function StatementPage({ params }: { params: { id: string } }) {
                       next[qi] = ci;
                       setAnswers(next);
                     }}
+                    className="w-4 h-4 text-blue-600"
                   />
-                  <span>{c}</span>
+                  <span className="text-gray-700">{c}</span>
                 </label>
               ))}
             </div>
@@ -148,28 +166,62 @@ export default function StatementPage({ params }: { params: { id: string } }) {
         ))}
 
         <button
-          className="rounded-2xl border px-4 py-2 disabled:opacity-50"
+          className={`rounded-xl px-8 py-3 font-bold text-lg transition-all ${
+            canSubmit
+              ? 'bg-gradient-to-r from-blue-500 to-purple-600 text-white shadow-lg hover:shadow-xl hover:scale-105'
+              : 'bg-gray-200 text-gray-400 cursor-not-allowed'
+          }`}
           disabled={!canSubmit}
           onClick={submit}
         >
-          Submit vote
+          Submit Vote 🚀
         </button>
 
-        {error && <p className="mt-3 text-red-600">{error}</p>}
+        {error && <p className="mt-3 text-red-600 font-semibold">{error}</p>}
       </div>
 
-      <div className="mt-10 rounded-2xl border p-4">
-        <h3 className="font-semibold mb-2">Community Results (Weighted)</h3>
-        <p className="text-sm opacity-70 mb-2">Votes are weighted by quiz performance.</p>
-        <div className="text-sm">
-          <div>Agree weight: <b>{(data.agreeWeight ?? 0).toFixed(2)}</b></div>
-          <div>Disagree weight: <b>{(data.disagreeWeight ?? 0).toFixed(2)}</b></div>
-          <div>Raw votes: <b>{data.totalVotes}</b></div>
+      <div className="mt-10 rounded-2xl border-2 border-gray-200 p-6 bg-gradient-to-br from-white to-gray-50">
+        <h3 className="font-bold text-xl mb-2 text-gray-800">📊 Community Results</h3>
+        <p className="text-sm text-gray-600 mb-4">Votes are weighted by quiz performance</p>
+        
+        <div className="mt-4 space-y-3">
+          {(() => {
+            const total = (data.agreeWeight ?? 0) + (data.disagreeWeight ?? 0);
+            const agreePercent = total > 0 ? Math.round(((data.agreeWeight ?? 0) / total) * 100) : 0;
+            const disagreePercent = total > 0 ? Math.round(((data.disagreeWeight ?? 0) / total) * 100) : 0;
+            
+            return (
+              <>
+                <div className="flex items-center justify-between bg-green-50 rounded-lg p-4 border border-green-200">
+                  <div className="flex items-center gap-3">
+                    <span className="text-3xl">👍</span>
+                    <span className="font-semibold text-lg text-gray-700">Agree</span>
+                  </div>
+                  <span className="text-3xl font-bold text-green-600">{agreePercent}%</span>
+                </div>
+                
+                <div className="flex items-center justify-between bg-red-50 rounded-lg p-4 border border-red-200">
+                  <div className="flex items-center gap-3">
+                    <span className="text-3xl">👎</span>
+                    <span className="font-semibold text-lg text-gray-700">Disagree</span>
+                  </div>
+                  <span className="text-3xl font-bold text-red-600">{disagreePercent}%</span>
+                </div>
+                
+                <div className="pt-3 border-t-2 text-sm text-gray-600 text-center">
+                  Total votes: <b className="text-gray-800">{data.totalVotes}</b>
+                </div>
+              </>
+            );
+          })()}
         </div>
 
         {result && (
-          <div className="mt-4 rounded-xl bg-gray-50 p-3 text-sm">
-            <div>🏅 Your weight: <b>{result.weightAwarded.toFixed(2)}</b> (Correct {result.correctCount}/{result.totalQuestions})</div>
+          <div className="mt-5 rounded-xl bg-gradient-to-r from-yellow-50 to-orange-50 border-2 border-yellow-300 p-4">
+            <div className="text-base font-semibold text-gray-800">
+              🏅 Your weight: <span className="text-orange-600">{result.weightAwarded.toFixed(2)}</span> 
+              <span className="text-sm text-gray-600 ml-2">(Correct {result.correctCount}/{result.totalQuestions})</span>
+            </div>
           </div>
         )}
       </div>

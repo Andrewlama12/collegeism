@@ -1,105 +1,232 @@
 import Link from "next/link";
 import React from "react";
 
-type LaneItem = {
+type StatementItem = {
   id: string;
   text: string;
   createdAt: string;
   totalVotes: number;
   agreeWeight: number;
   disagreeWeight: number;
-  balanceScore?: number;
+  summary?: {
+    forReasons: string[];
+    againstReasons: string[];
+  };
 };
 
-async function getLanes() {
-  // Import data directly since we're on the server
-  const { db, computeBalance } = await import('@/lib/data');
+function getBadges(statement: StatementItem) {
+  const badges: { label: string; emoji: string }[] = [];
   
-  // Initialize data if empty
-  if (db.statements.length === 0) {
-    const now = new Date();
-    const s = (hrs: number) => new Date(now.getTime() - hrs * 3600_000).toISOString();
-    
-    db.statements.push(
-      {
-        id: "1",
-        text: "Universities should publish all course materials online for free.",
-        createdAt: s(4),
-        totalVotes: 10,
-        agreeWeight: 7,
-        disagreeWeight: 3,
-        quiz: []
-      },
-      {
-        id: "2",
-        text: "Campus parking should be replaced with green space and microtransit.",
-        createdAt: s(2),
-        totalVotes: 15,
-        agreeWeight: 8,
-        disagreeWeight: 7,
-        quiz: []
-      }
-    );
+  // Check if popular (more than 5 votes)
+  if (statement.totalVotes >= 5) {
+    badges.push({ label: "Popular", emoji: "🔥" });
   }
+  
+  // Check if new (created in last 24 hours)
+  const oneDayAgo = Date.now() - 24 * 60 * 60 * 1000;
+  if (new Date(statement.createdAt).getTime() > oneDayAgo) {
+    badges.push({ label: "New", emoji: "✨" });
+  }
+  
+  // Check if close (votes are within 20% of each other)
+  const total = statement.agreeWeight + statement.disagreeWeight;
+  if (total > 0) {
+    const agreePercent = (statement.agreeWeight / total) * 100;
+    if (agreePercent >= 40 && agreePercent <= 60) {
+      badges.push({ label: "Close", emoji: "⚖️" });
+    }
+  }
+  
+  // Check for low understanding (people failing the quiz)
+  // Weight scoring: 1.0 = all correct, 0.5 = partial, 0.0 = wrong
+  // If average weight < 0.5, people are doing poorly
+  if (statement.totalVotes >= 3) {
+    const totalWeight = statement.agreeWeight + statement.disagreeWeight;
+    const avgWeight = totalWeight / statement.totalVotes;
+    
+    if (avgWeight < 0.5) {
+      badges.push({ label: "Uninformed", emoji: "⚠️" });
+    }
+  }
+  
+  return badges;
+}
 
-  const items = db.statements.map(s => ({ ...s, balanceScore: computeBalance(s) }));
+function getPercentages(agreeWeight: number, disagreeWeight: number) {
+  const total = agreeWeight + disagreeWeight;
+  if (total === 0) return { agree: 0, disagree: 0 };
   
   return {
-    mostPopular: [...items].sort((a, b) => b.totalVotes - a.totalVotes).slice(0, 20),
-    fiftyFifty: [...items].sort((a, b) => Math.abs(0.5 - (a.agreeWeight / (a.agreeWeight + a.disagreeWeight))) - Math.abs(0.5 - (b.agreeWeight / (b.agreeWeight + b.disagreeWeight)))).slice(0, 20),
-    newHot: [...items].sort((a, b) => +new Date(b.createdAt) - +new Date(a.createdAt)).slice(0, 20)
+    agree: Math.round((agreeWeight / total) * 100),
+    disagree: Math.round((disagreeWeight / total) * 100)
   };
 }
 
-function Lane({ title, items }: { title: string; items: LaneItem[] }) {
+async function getStatements() {
+  const { getStatements } = await import('@/lib/data');
+  const statements = await getStatements();
+  
+  // Sort by most recent first
+  return statements.sort((a, b) => +new Date(b.createdAt) - +new Date(a.createdAt));
+}
+
+function StatementCard({ statement }: { statement: StatementItem }) {
+  const badges = getBadges(statement);
+  const percentages = getPercentages(statement.agreeWeight, statement.disagreeWeight);
+  
+  // Remove surrounding quotes from text
+  const cleanText = statement.text.replace(/^["']|["']$/g, '');
+  
+  // Calculate comprehension rate
+  const getComprehensionStats = () => {
+    if (statement.totalVotes < 1) return null;
+    
+    const totalWeight = statement.agreeWeight + statement.disagreeWeight;
+    const avgWeight = totalWeight / statement.totalVotes;
+    const comprehensionRate = Math.round(avgWeight * 100);
+    
+    let color = 'blue';
+    let bgColor = 'bg-blue-50';
+    let borderColor = 'border-blue-200';
+    let textColor = 'text-blue-700';
+    
+    if (comprehensionRate >= 70) {
+      color = 'green';
+      bgColor = 'bg-green-50';
+      borderColor = 'border-green-200';
+      textColor = 'text-green-700';
+    } else if (comprehensionRate < 50) {
+      color = 'red';
+      bgColor = 'bg-red-50';
+      borderColor = 'border-red-200';
+      textColor = 'text-red-700';
+    } else if (comprehensionRate < 70) {
+      color = 'yellow';
+      bgColor = 'bg-yellow-50';
+      borderColor = 'border-yellow-200';
+      textColor = 'text-yellow-700';
+    }
+    
+    return { rate: comprehensionRate, bgColor, borderColor, textColor };
+  };
+  
+  const comprehension = getComprehensionStats();
+  
   return (
-    <section className="mb-10">
-      <h2 className="text-xl font-semibold mb-3">{title}</h2>
-      <div className="flex gap-4 overflow-x-auto pb-2">
-        {items.length === 0 ? (
-          <div className="min-w-[340px] max-w-[340px] rounded-2xl border p-4 animate-pulse bg-gray-50">
-            <div className="h-4 bg-gray-200 rounded w-3/4 mb-2"></div>
-            <div className="h-4 bg-gray-200 rounded w-1/2"></div>
-            <div className="mt-3 flex gap-2">
-              <div className="h-3 bg-gray-200 rounded w-16"></div>
-              <div className="h-3 bg-gray-200 rounded w-20"></div>
-            </div>
-          </div>
-        ) : (
-          items.map((s) => (
-            <Link
-              key={s.id}
-              href={`/statement/${s.id}`}
-              className="min-w-[340px] max-w-[340px] rounded-2xl border p-4 hover:shadow-sm transition-shadow"
+    <Link
+      href={`/statement/${statement.id}`}
+      className="group rounded-2xl border border-gray-200 p-6 hover:border-blue-300 hover:shadow-lg transition-all duration-200 relative bg-white hover:bg-gradient-to-br hover:from-blue-50 hover:to-purple-50"
+    >
+      {/* Badges in upper right */}
+      {badges.length > 0 && (
+        <div className="absolute top-3 right-3 flex gap-1.5 flex-wrap justify-end max-w-[140px]">
+          {badges.map((badge, i) => (
+            <span
+              key={i}
+              className="text-xs bg-gradient-to-r from-gray-100 to-gray-50 rounded-full px-2.5 py-1 flex items-center gap-1 shadow-sm"
             >
-              <p className="leading-6">{s.text}</p>
-              <div className="mt-3 text-xs opacity-70">
-                <span className="mr-3">Votes: {s.totalVotes}</span>
-                <span>Balance: {s.balanceScore?.toFixed?.(2) ?? "0.00"}</span>
-              </div>
-            </Link>
-          ))
-        )}
+              <span>{badge.emoji}</span>
+              <span className="font-semibold text-gray-700">{badge.label}</span>
+            </span>
+          ))}
+        </div>
+      )}
+      
+      <p className="leading-7 pr-20 text-gray-800 font-semibold text-lg group-hover:text-gray-900">{cleanText}</p>
+      
+      {/* Comprehension Rate Ribbon */}
+      {comprehension && (
+        <div className="mt-4 flex items-center justify-between text-xs text-gray-600">
+          <div className="flex items-center gap-1.5">
+            <span className="text-sm">🧠</span>
+            <span>Voter Comprehension:</span>
+          </div>
+          <div className="flex items-center gap-1.5">
+            <span className={`font-bold ${comprehension.textColor}`}>{comprehension.rate}%</span>
+            <span className="text-gray-500">
+              {comprehension.rate >= 70 && 'Informed'}
+              {comprehension.rate < 50 && 'Uninformed'}
+              {comprehension.rate >= 50 && comprehension.rate < 70 && 'Partly Informed'}
+            </span>
+          </div>
+        </div>
+      )}
+      
+      {/* Preview of arguments */}
+      {statement.summary && (
+        <div className="mt-5 grid grid-cols-2 gap-4 text-sm">
+          <div className="bg-green-50 border border-green-200 rounded-lg p-3">
+            <div className="font-semibold text-green-800 mb-2 flex items-center gap-1">
+              <span>✓</span> For
+            </div>
+            <p className="text-gray-700 text-xs leading-relaxed line-clamp-2">
+              {statement.summary.forReasons[0]}
+            </p>
+          </div>
+          <div className="bg-red-50 border border-red-200 rounded-lg p-3">
+            <div className="font-semibold text-red-800 mb-2 flex items-center gap-1">
+              <span>✗</span> Against
+            </div>
+            <p className="text-gray-700 text-xs leading-relaxed line-clamp-2">
+              {statement.summary.againstReasons[0]}
+            </p>
+          </div>
+        </div>
+      )}
+      
+      <div className="mt-4 flex items-center gap-5 text-sm border-t pt-4">
+        <div className="flex items-center gap-1.5 bg-green-50 rounded-lg px-3 py-1.5">
+          <span className="text-lg">👍</span>
+          <span className="font-bold text-green-700">{percentages.agree}%</span>
+        </div>
+        <div className="flex items-center gap-1.5 bg-red-50 rounded-lg px-3 py-1.5">
+          <span className="text-lg">👎</span>
+          <span className="font-bold text-red-700">{percentages.disagree}%</span>
+        </div>
+        <span className="text-xs opacity-60 ml-auto">
+          {statement.totalVotes} {statement.totalVotes === 1 ? 'vote' : 'votes'}
+        </span>
       </div>
-    </section>
+      
+      <div className="mt-3 text-center">
+        <span className="text-xs text-blue-600 font-medium group-hover:underline">
+          Click to read more & vote →
+        </span>
+      </div>
+    </Link>
   );
 }
 
 export default async function Home() {
-  const lanes = await getLanes();
+  try {
+    const statements = await getStatements();
 
-  return (
-    <main className="mx-auto max-w-5xl p-6">
-      <header className="mb-8">
-        <h1 className="text-3xl font-bold">Collegeism — Understanding &gt; Noise</h1>
-        <p className="opacity-70 mt-2">
-          Vote, earn weight by passing quick comprehension checks, and see summarized reasons for both sides.
-        </p>
-      </header>
+    return (
+      <main className="mx-auto max-w-5xl p-6">
+        <header className="mb-10 text-center">
+          <h1 className="text-4xl font-bold text-black">
+            Collegeism — Understanding &gt; Noise
+          </h1>
+          <p className="text-gray-600 mt-3 text-lg">
+            Vote on important world issues. Earn weight by demonstrating comprehension. See both sides of every debate.
+          </p>
+        </header>
 
-      <Lane title="Most Popular" items={lanes.mostPopular} />
-      <Lane title="50/50 Debates" items={lanes.fiftyFifty} />
-      <Lane title="New / Hot" items={lanes.newHot} />
-    </main>
-  );
+        <div className="flex flex-col gap-5 max-w-2xl mx-auto">
+          {statements.length === 0 ? (
+            <div className="rounded-2xl border-2 border-dashed border-gray-300 p-12 text-center">
+              <p className="text-gray-500 text-lg">No statements yet. Create one to get started!</p>
+            </div>
+          ) : (
+            statements.map((statement) => (
+              <StatementCard key={statement.id} statement={statement} />
+            ))
+          )}
+        </div>
+      </main>
+    );
+  } catch (error) {
+    console.error('Error in Home component:', error);
+    throw error;
+  }
 }

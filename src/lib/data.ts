@@ -1,32 +1,110 @@
-import { prisma } from './prisma';
+import { supabase } from './supabase';
 import { StatementWithQuiz } from './types';
 
 export async function getStatements(): Promise<StatementWithQuiz[]> {
-  const statements = await prisma.statement.findMany({
-    include: {
-      quiz: true,
-      summary: true,
-    },
-  });
+  try {
+    const { data: statements, error } = await supabase
+      .from('statements')
+      .select(`
+        *,
+        quiz (
+          id,
+          question,
+          choices,
+          answer_index
+        ),
+        summary (
+          for_reasons,
+          against_reasons
+        )
+      `)
+      .order('created_at', { ascending: false });
 
-  return statements.map(statement => ({
-    id: statement.id,
-    text: statement.text,
-    createdAt: statement.createdAt.toISOString(),
-    totalVotes: statement.totalVotes,
-    agreeWeight: statement.agreeWeight,
-    disagreeWeight: statement.disagreeWeight,
-    quiz: statement.quiz.map(q => ({
-      id: q.id,
-      question: q.question,
-      choices: JSON.parse(q.choices),
-      answerIndex: q.answerIndex,
-    })),
-    summary: statement.summary ? {
-      forReasons: JSON.parse(statement.summary.forReasons),
-      againstReasons: JSON.parse(statement.summary.againstReasons),
-    } : undefined,
-  }));
+    if (error) {
+      console.error('Supabase query error:', error);
+      throw new Error(`Failed to fetch statements: ${error.message}`);
+    }
+    
+    if (!statements) {
+      console.log('No statements found, returning empty array');
+      return [];
+    }
+
+    return statements.map(statement => ({
+      id: statement.id,
+      text: statement.text,
+      createdAt: statement.created_at,
+      totalVotes: statement.total_votes,
+      agreeWeight: statement.agree_weight,
+      disagreeWeight: statement.disagree_weight,
+      quiz: statement.quiz?.map(q => ({
+        id: q.id,
+        question: q.question,
+        choices: q.choices,
+        answerIndex: q.answer_index,
+      })) || [],
+      summary: statement.summary?.[0] ? {
+        forReasons: statement.summary[0].for_reasons,
+        againstReasons: statement.summary[0].against_reasons,
+      } : undefined
+    }));
+  } catch (error) {
+    console.error('Error in getStatements:', error);
+    throw error;
+  }
+}
+
+export async function getStatementById(id: string): Promise<StatementWithQuiz | null> {
+  try {
+    const { data: statement, error } = await supabase
+      .from('statements')
+      .select(`
+        *,
+        quiz (
+          id,
+          question,
+          choices,
+          answer_index
+        ),
+        summary (
+          for_reasons,
+          against_reasons
+        )
+      `)
+      .eq('id', id)
+      .single();
+
+    if (error) {
+      console.error('Supabase query error:', error);
+      return null;
+    }
+    
+    if (!statement) {
+      return null;
+    }
+
+    return {
+      id: statement.id,
+      text: statement.text,
+      createdAt: statement.created_at,
+      totalVotes: statement.total_votes,
+      agreeWeight: statement.agree_weight,
+      disagreeWeight: statement.disagree_weight,
+      quiz: statement.quiz?.map(q => ({
+        id: q.id,
+        question: q.question,
+        choices: q.choices,
+        answerIndex: q.answer_index,
+      })) || [],
+      summary: statement.summary?.[0] ? {
+        forReasons: statement.summary[0].for_reasons,
+        againstReasons: statement.summary[0].against_reasons,
+      } : undefined
+    };
+  } catch (error) {
+    console.error('Error in getStatementById:', error);
+    return null;
+  }
 }
 
 export function computeBalance(st: { agreeWeight: number; disagreeWeight: number }) {

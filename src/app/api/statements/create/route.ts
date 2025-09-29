@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { prisma } from "@/lib/prisma";
+import { supabase } from "@/lib/supabase";
 import { generateQuizForStatement, summarizeReasons } from "@/lib/ai";
 
 export async function POST(request: Request) {
@@ -10,48 +10,82 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: "Invalid statement text" }, { status: 400 });
     }
 
+    // Remove any surrounding quotes from the text
+    const cleanText = text.trim().replace(/^["']|["']$/g, "");
+
     // Generate quiz and summary using AI
     const [quiz, summary] = await Promise.all([
-      generateQuizForStatement(text),
-      summarizeReasons(text)
+      generateQuizForStatement(cleanText),
+      summarizeReasons(cleanText)
     ]);
 
-    // Create the statement with its relations
-    const statement = await prisma.statement.create({
-      data: {
-        text,
-        quiz: {
-          create: quiz.map((q: any, i: number) => ({
-            question: q.question,
-            choices: JSON.stringify(q.choices),
-            answerIndex: q.answerIndex,
-          }))
-        },
-        summary: {
-          create: {
-            forReasons: JSON.stringify(summary?.forReasons ?? []),
-            againstReasons: JSON.stringify(summary?.againstReasons ?? [])
-          }
-        }
-      },
-      include: {
-        quiz: true,
-        summary: true
-      }
-    });
+    // Create the statement
+    const { data: statement, error: statementError } = await supabase
+      .from('statements')
+      .insert([{ text: cleanText }])
+      .select()
+      .single();
+
+    if (statementError) throw statementError;
+    if (!statement) throw new Error('Failed to create statement');
+
+    // Create quizzes
+    const { error: quizError } = await supabase
+      .from('quiz')
+      .insert(
+        quiz.map((q: any) => ({
+          statement_id: statement.id,
+          question: q.question,
+          choices: q.choices,
+          answer_index: q.answerIndex,
+        }))
+      );
+
+    if (quizError) throw quizError;
+
+    // Create summary
+    const { error: summaryError } = await supabase
+      .from('summary')
+      .insert([{
+        statement_id: statement.id,
+        for_reasons: summary?.forReasons ?? [],
+        against_reasons: summary?.againstReasons ?? []
+      }]);
+
+    if (summaryError) throw summaryError;
+
+    // Fetch the complete statement with relations
+    const { data: completeStatement, error: fetchError } = await supabase
+      .from('statements')
+      .select(`
+        *,
+        quiz (*),
+        summary (*)
+      `)
+      .eq('id', statement.id)
+      .single();
+
+    if (fetchError) throw fetchError;
+    if (!completeStatement) throw new Error('Failed to fetch complete statement');
 
     return NextResponse.json({ 
       ok: true, 
       statement: {
-        ...statement,
-        createdAt: statement.createdAt.toISOString(),
-        quiz: statement.quiz.map(q => ({
-          ...q,
-          choices: JSON.parse(q.choices)
-        })),
-        summary: statement.summary ? {
-          forReasons: JSON.parse(statement.summary.forReasons),
-          againstReasons: JSON.parse(statement.summary.againstReasons)
+        id: completeStatement.id,
+        text: completeStatement.text,
+        createdAt: completeStatement.created_at,
+        totalVotes: completeStatement.total_votes,
+        agreeWeight: completeStatement.agree_weight,
+        disagreeWeight: completeStatement.disagree_weight,
+        quiz: completeStatement.quiz?.map(q => ({
+          id: q.id,
+          question: q.question,
+          choices: q.choices,
+          answerIndex: q.answer_index,
+        })) || [],
+        summary: completeStatement.summary?.[0] ? {
+          forReasons: completeStatement.summary[0].for_reasons,
+          againstReasons: completeStatement.summary[0].against_reasons,
         } : undefined
       }
     });
