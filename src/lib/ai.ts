@@ -1,5 +1,19 @@
 export async function generateQuizForStatement(text: string, apiKey = process.env.OPENAI_API_KEY) {
-  if (!apiKey) throw new Error("Missing OPENAI_API_KEY");
+  if (!apiKey) {
+    console.warn("Missing OPENAI_API_KEY - returning mock quiz data");
+    return [
+      {
+        question: "What is the main point being discussed?",
+        choices: [
+          "The opposite of the statement",
+          "The exact statement",
+          "Something unrelated",
+          "None of the above"
+        ],
+        answerIndex: 1
+      }
+    ];
+  }
   const body = {
     model: "gpt-4-turbo-preview",
     temperature: 0.3,
@@ -26,7 +40,13 @@ export async function generateQuizForStatement(text: string, apiKey = process.en
 }
 
 export async function summarizeReasons(text: string, apiKey = process.env.OPENAI_API_KEY) {
-  if (!apiKey) throw new Error("Missing OPENAI_API_KEY");
+  if (!apiKey) {
+    console.warn("Missing OPENAI_API_KEY - returning mock summary data");
+    return {
+      forReasons: ["This is a placeholder reason in favor"],
+      againstReasons: ["This is a placeholder reason against"]
+    };
+  }
   const body = {
     model: "gpt-4-turbo-preview",
     temperature: 0.2,
