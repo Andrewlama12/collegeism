@@ -97,7 +97,7 @@ export default function StatementPage({ params }: { params: { id: string } }) {
   );
 
   return (
-    <main className="mx-auto max-w-2xl p-6">
+    <main className="mx-auto max-w-2xl p-6 w-full overflow-hidden">
       <Link 
         href="/"
         className="inline-flex items-center gap-2 mb-6 text-sm text-blue-600 hover:text-blue-700 font-medium"
@@ -135,7 +135,7 @@ export default function StatementPage({ params }: { params: { id: string } }) {
       <div className="mt-10">
         <h2 className="text-xl font-semibold mb-4 text-gray-800">📝 Comprehension Check</h2>
         {data.quiz?.map((q, qi) => (
-          <div key={q.id} className="mb-6 rounded-xl border-2 border-gray-200 p-5 bg-gradient-to-br from-white to-gray-50">
+          <div key={q.id} className="mb-6 rounded-xl border-2 border-gray-200 p-5 bg-gradient-to-br from-white to-gray-50 overflow-hidden">
             <p className="font-semibold mb-3 text-gray-800">{qi + 1}. {q.question}</p>
             <div className="grid gap-2.5">
               {q.choices.map((c, ci) => (
@@ -180,7 +180,7 @@ export default function StatementPage({ params }: { params: { id: string } }) {
         {error && <p className="mt-3 text-red-600 font-semibold">{error}</p>}
       </div>
 
-      <div className="mt-10 rounded-2xl border-2 border-gray-200 p-6 bg-gradient-to-br from-white to-gray-50">
+      <div className="mt-10 rounded-2xl border-2 border-gray-200 p-6 bg-gradient-to-br from-white to-gray-50 overflow-hidden">
         <h3 className="font-bold text-xl mb-2 text-gray-800">📊 Community Results</h3>
         <p className="text-sm text-gray-600 mb-4">Votes are weighted by quiz performance</p>
         
@@ -227,7 +227,7 @@ export default function StatementPage({ params }: { params: { id: string } }) {
       </div>
 
       {data.summary && (
-        <div className="mt-10 grid gap-4 md:grid-cols-2">
+        <div className="mt-10 grid gap-4 md:grid-cols-2 w-full">
           <div className="rounded-2xl border p-4">
             <h4 className="font-semibold mb-2">Top Reasons — For</h4>
             <ul className="list-disc pl-5 space-y-1">
